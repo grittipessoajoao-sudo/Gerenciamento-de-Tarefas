@@ -1,0 +1,352 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <meta name="description" content="Sistema completo de gerenciamento de tarefas com simulação e operações do MongoDB (mongosh).">
+  <title>TaskMaster MongoDB | Gerenciador de Tarefas</title>
+  
+  <!-- Fontes do Google -->
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&family=JetBrains+Mono:wght@400;500;600&family=Outfit:wght@500;600;700;800&display=swap" rel="stylesheet">
+  
+  <!-- Ícones Phosphor / Boxicons via SVG inline ou CSS -->
+  <link rel="stylesheet" href="style.css">
+</head>
+<body>
+  <!-- Efeito de Fundo Decorativo -->
+  <div class="bg-glow glow-1"></div>
+  <div class="bg-glow glow-2"></div>
+  <div class="bg-glow glow-3"></div>
+
+  <!-- Barra de Navegação Superior -->
+  <header class="app-header">
+    <div class="container header-container">
+      <div class="logo-group">
+        <div class="logo-icon">
+          <svg viewBox="0 0 24 24" width="24" height="24" fill="none" stroke="currentColor" stroke-width="2.5">
+            <path d="M12 2L2 7l10 5 10-5-10-5zM2 17l10 5 10-5M2 12l10 5 10-5" stroke-linecap="round" stroke-linejoin="round"/>
+          </svg>
+        </div>
+        <div>
+          <h1 class="app-title">TaskMaster <span>MongoDB</span></h1>
+          <p class="app-subtitle">Sistema de Gerenciamento de Tarefas & Shell Interativo</p>
+        </div>
+      </div>
+
+      <div class="header-actions">
+        <button id="btn-guia-exercicios" class="btn btn-secondary" title="Executar Exercícios">
+          <svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="2">
+            <polygon points="5 3 19 12 5 21 5 3"></polygon>
+          </svg>
+          Exercícios MongoDB
+        </button>
+
+        <button id="btn-nova-tarefa" class="btn btn-primary">
+          <svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="2">
+            <line x1="12" y1="5" x2="12" y2="19"></line>
+            <line x1="5" y1="12" x2="19" y2="12"></line>
+          </svg>
+          Nova Tarefa
+        </button>
+
+        <button id="btn-toggle-terminal" class="btn btn-terminal" title="Terminal MongoShell">
+          <svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="2">
+            <polyline points="4 17 10 11 4 5"></polyline>
+            <line x1="12" y1="19" x2="20" y2="19"></line>
+          </svg>
+          mongosh
+        </button>
+      </div>
+    </div>
+  </header>
+
+  <!-- Conteúdo Principal -->
+  <main class="container main-content">
+
+    <!-- Painel de Métricas / Agregação -->
+    <section class="stats-grid" id="stats-section">
+      <div class="stat-card" id="card-total">
+        <div class="stat-icon icon-blue">📋</div>
+        <div class="stat-info">
+          <span class="stat-label">Total de Tarefas</span>
+          <h3 class="stat-value" id="stat-total">0</h3>
+        </div>
+      </div>
+
+      <div class="stat-card" id="card-pendentes">
+        <div class="stat-icon icon-yellow">⏳</div>
+        <div class="stat-info">
+          <span class="stat-label">Pendentes</span>
+          <h3 class="stat-value text-yellow" id="stat-pendentes">0</h3>
+        </div>
+      </div>
+
+      <div class="stat-card" id="card-andamento">
+        <div class="stat-icon icon-purple">⚡</div>
+        <div class="stat-info">
+          <span class="stat-label">Em Andamento</span>
+          <h3 class="stat-value text-purple" id="stat-andamento">0</h3>
+        </div>
+      </div>
+
+      <div class="stat-card" id="card-concluidas">
+        <div class="stat-icon icon-green">✅</div>
+        <div class="stat-info">
+          <span class="stat-label">Concluídas</span>
+          <h3 class="stat-value text-green" id="stat-concluidas">0</h3>
+        </div>
+      </div>
+
+      <div class="stat-card stat-urgente" id="card-urgente">
+        <div class="stat-icon icon-red">🔥</div>
+        <div class="stat-info">
+          <span class="stat-label">Mais Urgente ($sort & $limit)</span>
+          <h4 class="stat-urgent-title" id="stat-urgente-titulo">Nenhuma tarefa</h4>
+          <span class="stat-urgent-date" id="stat-urgente-data">-</span>
+        </div>
+      </div>
+    </section>
+
+    <!-- Barra de Filtros e Controles -->
+    <section class="controls-panel">
+      <div class="search-box">
+        <svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="2">
+          <circle cx="11" cy="11" r="8"></circle>
+          <line x1="21" y1="21" x2="16.65" y2="16.65"></line>
+        </svg>
+        <input type="text" id="input-busca" placeholder="Buscar por título, descrição ou tag..." aria-label="Buscar tarefas">
+      </div>
+
+      <div class="filters-group">
+        <!-- Filtro Status -->
+        <div class="select-wrapper">
+          <label for="filtro-status" class="sr-only">Status</label>
+          <select id="filtro-status" aria-label="Filtrar por status">
+            <option value="todos">Todos os Status</option>
+            <option value="pendente">Pendente</option>
+            <option value="em andamento">Em Andamento</option>
+            <option value="concluída">Concluída</option>
+          </select>
+        </div>
+
+        <!-- Filtro Prioridade -->
+        <div class="select-wrapper">
+          <label for="filtro-prioridade" class="sr-only">Prioridade</label>
+          <select id="filtro-prioridade" aria-label="Filtrar por prioridade">
+            <option value="todas">Todas as Prioridades</option>
+            <option value="alta">Alta</option>
+            <option value="média">Média</option>
+            <option value="baixa">Baixa</option>
+          </select>
+        </div>
+
+        <!-- Visualização Projeção Compacta -->
+        <button id="btn-toggle-view" class="btn btn-outline" title="Alternar visão compacta (Projeção: título + data limite)">
+          <svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="2">
+            <line x1="8" y1="6" x2="21" y2="6"></line>
+            <line x1="8" y1="12" x2="21" y2="12"></line>
+            <line x1="8" y1="18" x2="21" y2="18"></line>
+            <line x1="3" y1="6" x2="3.01" y2="6"></line>
+            <line x1="3" y1="12" x2="3.01" y2="12"></line>
+            <line x1="3" y1="18" x2="3.01" y2="18"></line>
+          </svg>
+          <span id="label-view-mode">Visão Completa</span>
+        </button>
+      </div>
+    </section>
+
+    <!-- Lista de Tarefas -->
+    <section class="tasks-section">
+      <div class="section-header">
+        <h2 class="section-title">Coleção: <code class="code-badge">db.tarefas</code></h2>
+        <span class="counter-badge" id="counter-tarefas">0 itens exibidos</span>
+      </div>
+
+      <div class="tasks-grid" id="tasks-container">
+        <!-- Cards inseridos dinamicamente via JS -->
+      </div>
+
+      <!-- Estado Vazio -->
+      <div class="empty-state hidden" id="empty-state">
+        <div class="empty-icon">📭</div>
+        <h3>Nenhuma tarefa encontrada</h3>
+        <p>Você pode criar uma nova tarefa ou executar os exercícios do MongoDB abaixo.</p>
+        <button id="btn-seed-empty" class="btn btn-primary">Carregar Dados Iniciais (Ex. 2)</button>
+      </div>
+    </section>
+
+  </main>
+
+  <!-- Modal Nova / Editar Tarefa -->
+  <div class="modal-overlay hidden" id="modal-tarefa">
+    <div class="modal-card">
+      <div class="modal-header">
+        <h3 id="modal-titulo">Adicionar Nova Tarefa</h3>
+        <button class="btn-close" id="btn-fechar-modal" aria-label="Fechar Modal">&times;</button>
+      </div>
+      <form id="form-tarefa" class="modal-body">
+        <input type="hidden" id="tarefa-id">
+
+        <div class="form-group">
+          <label for="form-titulo">Título da Tarefa *</label>
+          <input type="text" id="form-titulo" required placeholder="Ex: Estudar MongoDB" maxlength="60">
+        </div>
+
+        <div class="form-group">
+          <label for="form-descricao">Descrição</label>
+          <textarea id="form-descricao" rows="3" placeholder="Detalhes e objetivos da tarefa..."></textarea>
+        </div>
+
+        <div class="form-row">
+          <div class="form-group">
+            <label for="form-status">Status</label>
+            <select id="form-status">
+              <option value="pendente">Pendente</option>
+              <option value="em andamento">Em Andamento</option>
+              <option value="concluída">Concluída</option>
+            </select>
+          </div>
+
+          <div class="form-group">
+            <label for="form-prioridade">Prioridade</label>
+            <select id="form-prioridade">
+              <option value="alta">Alta</option>
+              <option value="média" selected>Média</option>
+              <option value="baixa">Baixa</option>
+            </select>
+          </div>
+        </div>
+
+        <div class="form-row">
+          <div class="form-group">
+            <label for="form-data">Data Limite *</label>
+            <input type="date" id="form-data" required>
+          </div>
+
+          <div class="form-group">
+            <label for="form-responsavel">Responsável</label>
+            <input type="text" id="form-responsavel" placeholder="Ex: Maria Silva">
+          </div>
+        </div>
+
+        <div class="form-group">
+          <label for="form-tag">Tag / Etiqueta</label>
+          <input type="text" id="form-tag" placeholder="Ex: urgente, estudo, trabalho">
+        </div>
+
+        <div class="modal-actions">
+          <button type="button" class="btn btn-secondary" id="btn-cancelar-modal">Cancelar</button>
+          <button type="submit" class="btn btn-primary" id="btn-salvar-tarefa">Salvar Tarefa</button>
+        </div>
+      </form>
+    </div>
+  </div>
+
+  <!-- Modal de Execução dos Exercícios MongoDB -->
+  <div class="modal-overlay hidden" id="modal-exercicios">
+    <div class="modal-card modal-lg">
+      <div class="modal-header">
+        <div class="modal-header-icon">⚡</div>
+        <div>
+          <h3>Roteiro de Exercícios MongoDB</h3>
+          <p class="modal-desc">Execute cada etapa do exercício diretamente e visualize o efeito no banco de dados.</p>
+        </div>
+        <button class="btn-close" id="btn-fechar-exercicios">&times;</button>
+      </div>
+
+      <div class="exercicios-list">
+        <div class="exercicio-item">
+          <div class="ex-info">
+            <span class="ex-badge">Exercício 1</span>
+            <h4>Criar Banco & Coleção</h4>
+            <p>Inicializa o banco <code>gerenciadorDeTarefas</code> e a coleção <code>tarefas</code>.</p>
+          </div>
+          <button class="btn btn-outline btn-sm" id="btn-ex1">Executar Ex. 1</button>
+        </div>
+
+        <div class="exercicio-item">
+          <div class="ex-info">
+            <span class="ex-badge">Exercício 2</span>
+            <h4>Inserir 3 Tarefas Iniciais (CREATE)</h4>
+            <p>Insere "Comprar Leite", "Preparar Apresentação" e "Responder E-mails".</p>
+          </div>
+          <button class="btn btn-outline btn-sm" id="btn-ex2">Executar Ex. 2</button>
+        </div>
+
+        <div class="exercicio-item">
+          <div class="ex-info">
+            <span class="ex-badge">Exercício 3</span>
+            <h4>Leitura & Projeção (READ)</h4>
+            <p>Filtra tarefas pendentes e projeta tarefas de alta prioridade (título e data).</p>
+          </div>
+          <button class="btn btn-outline btn-sm" id="btn-ex3">Executar Ex. 3</button>
+        </div>
+
+        <div class="exercicio-item">
+          <div class="ex-info">
+            <span class="ex-badge">Exercício 4</span>
+            <h4>Atualizações (UPDATE)</h4>
+            <p>Conclui "Comprar Leite", adiciona responsável em "Responder E-mails", insere "Estudar MongoDB" e marca pendentes como "urgente".</p>
+          </div>
+          <button class="btn btn-outline btn-sm" id="btn-ex4">Executar Ex. 4</button>
+        </div>
+
+        <div class="exercicio-item">
+          <div class="ex-info">
+            <span class="ex-badge">Exercício 5</span>
+            <h4>Exclusões (DELETE)</h4>
+            <p>Deleta "Comprar Leite" e todas as tarefas de prioridade baixa.</p>
+          </div>
+          <button class="btn btn-outline btn-sm" id="btn-ex5">Executar Ex. 5</button>
+        </div>
+
+        <div class="exercicio-item">
+          <div class="ex-info">
+            <span class="ex-badge">Exercício 6</span>
+            <h4>Agregação & Consultas Avançadas</h4>
+            <p>Insere dados extras, filtra por $or, cria índice, agrupa por status e localiza a tarefa pendente mais urgente.</p>
+          </div>
+          <button class="btn btn-outline btn-sm" id="btn-ex6">Executar Ex. 6</button>
+        </div>
+      </div>
+
+      <div class="modal-actions">
+        <button class="btn btn-primary" id="btn-executar-todos">Executar Todos os Exercícios (1 ao 6)</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- Gaveta do Terminal MongoShell Interativo -->
+  <aside class="terminal-drawer hidden" id="terminal-drawer">
+    <div class="terminal-header">
+      <div class="terminal-dots">
+        <span class="dot dot-red"></span>
+        <span class="dot dot-yellow"></span>
+        <span class="dot dot-green"></span>
+        <span class="terminal-title">mongosh - gerenciadorDeTarefas</span>
+      </div>
+      <div class="terminal-controls">
+        <button id="btn-limpar-terminal" class="btn-icon" title="Limpar Console">🧹</button>
+        <button id="btn-fechar-terminal" class="btn-icon" title="Fechar">&times;</button>
+      </div>
+    </div>
+    <div class="terminal-body" id="terminal-output">
+      <div class="terminal-line text-muted">// Terminal mongosh conectado ao banco 'gerenciadorDeTarefas'</div>
+      <div class="terminal-line text-muted">// Qualquer operação na interface refletirá o comando MongoDB aqui!</div>
+    </div>
+    <div class="terminal-input-bar">
+      <span class="prompt-symbol">&gt;</span>
+      <input type="text" id="terminal-input" placeholder="Digite um comando mongosh (ex: db.tarefas.find())" aria-label="Entrada do mongosh">
+      <button id="btn-enviar-terminal" class="btn btn-sm btn-primary">Executar</button>
+    </div>
+  </aside>
+
+  <!-- Toast Notification -->
+  <div class="toast-container" id="toast-container"></div>
+
+  <!-- Scripts -->
+  <script src="app.js"></script>
+</body>
+</html>
